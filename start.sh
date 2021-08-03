@@ -4,9 +4,9 @@ git clone git@bitbucket.org:mytesend/wireguard-tools.git
 
 cp wg0.conf wg11.conf 
 
-WGCG_CONFIG_FILE=wg11.conf ./wgcg.sh -s
-WGCG_CONFIG_FILE=wg11.conf ./wgcg.sh -c loi11 10.0.11.2
-WGCG_CONFIG_FILE=wg11.conf ./wgcg.sh -S
+WGCG_CONFIG_FILE=server1.conf ./wgcg.sh -s
+WGCG_CONFIG_FILE=server1.conf ./wgcg.sh -c loi 10.0.0.2
+WGCG_CONFIG_FILE=server1.conf ./wgcg.sh -S
 
 #Add rule
 ufw status
