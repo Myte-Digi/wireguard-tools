@@ -388,13 +388,16 @@ gen_server_config() {
 
   gen_keys server-${server_name}
 
+  # Local private interface
+  PRIVATE_INTERFACE="$(ip a | awk -F'[ :]' '/^2:/ {print $3}')"
+
   cat > ${server_config} <<EOF && chmod 600 ${server_config}
 [Interface]
 Address = ${server_wg_ip}/${cidr}
 ListenPort = ${server_port}
 PrivateKey = $(head -1 ${server_private_key})
-PostUp = iptables -A FORWARD -i ${server_name} -j ACCEPT; iptables -A FORWARD -o ${server_name} -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE; 
-PostDown = iptables -D FORWARD -i ${server_name} -j ACCEPT; iptables -D FORWARD -o ${server_name} -j ACCEPT;iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+PostUp = iptables -A FORWARD -i ${server_name} -j ACCEPT; iptables -A FORWARD -o ${server_name} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${PRIVATE_INTERFACE} -j MASQUERADE; 
+PostDown = iptables -D FORWARD -i ${server_name} -j ACCEPT; iptables -D FORWARD -o ${server_name} -j ACCEPT;iptables -t nat -D POSTROUTING -o ${PRIVATE_INTERFACE} -j MASQUERADE
 EOF
 
   touch ${server_generated}
@@ -524,7 +527,7 @@ AllowedIPs = ${client_wg_ip}/32
 ### ${client_name} - END
 EOF
 
-  echo -e "${GREEN}INFO${NONE}: Client config ${BLUE}${client_config}${NONE} has been generated successfully!"
+  echo -e "${client_config}"
 }
 
 
@@ -548,7 +551,7 @@ gen_qr() {
 
   if [[ ${output} != "-" ]]; then
     chmod 600 ${config_path}.png
-    echo -e "${GREEN}INFO${NONE}: QR file ${BLUE}${config_path}.png${NONE} has been generated successfully!"
+    echo -e "${config_path}.png${NONE}"
   fi
 }
 
@@ -660,7 +663,7 @@ case ${1} in
   '-c'|'--add-client-config')
     shift
     # client_name, client_wg_ip, server_name, server_port, server_public_ip
-    gen_client_config ${1:-''} ${2:-''} ${SERVER_NAME} ${SERVER_PORT} ${SERVER_PUBLIC_IP} "${CLIENT_DNS_IPS}" "${CLIENT_ALLOWED_IPS}" "${SERVER_MASTER_IP}" "${SERVER_MASTER_PORT}"
+    gen_client_config ${1:-''} ${2:-''} ${SERVER_NAME} ${SERVER_PORT} ${SERVER_PUBLIC_IP} "${CLIENT_DNS_IPS}" "${3:-${CLIENT_ALLOWED_IPS}}" "${SERVER_MASTER_IP}" "${SERVER_MASTER_PORT}"
     [[ ${?} -ne 0 ]] && exit 1
     # client_name
     gen_qr ${1}
