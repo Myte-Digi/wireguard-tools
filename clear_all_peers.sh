@@ -1,0 +1,1 @@
+rm -rf ./wg0/client-*  && WGCG_CONFIG_FILE=server1.conf ./wgcg.sh -s

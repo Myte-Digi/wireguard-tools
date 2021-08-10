@@ -170,7 +170,7 @@ validator() {
       fi
     ;;
     'in_cidr')
-      # validator in_cidr "10.0.0.2 10.0.0.1/22"
+      # validator in_cidr "10.0.0.2 10.0.0.1/8"
       value=(${value})
       hostid=${value[0]}
       netid=${value[1]}
@@ -254,7 +254,7 @@ decrypt() {
 wg_sysprep() {
   local sysprep_module="${1}"
   local server_ssh_ip="${2}"
-  local server_ssh_port="${3:-22}"
+  local server_ssh_port="${3:-8}"
 
   local server_prepared="${WORKING_DIR}/.sysprepared"
 
@@ -352,7 +352,7 @@ gen_server_config() {
 
   local server_wg_ip="${server_wg_ip_cidr%%/*}"
   local cidr="$(echo ${server_wg_ip_cidr} | awk -F'/' '{print $2}')"
-  local cidr="${cidr:-22}"
+  local cidr="${cidr:-8}"
 
   [[ ! -d ${WORKING_DIR} ]] && mkdir -p ${WORKING_DIR}
 
@@ -611,7 +611,7 @@ wg_list_used_ips() {
 wg_sync() {
   local server_name="${1}"
   local server_ssh_ip="${2}"
-  local server_ssh_port="${3:-22}"
+  local server_ssh_port="${3:-8}"
 
   local server_config="${WORKING_DIR}/server-${server_name}.conf"
 
