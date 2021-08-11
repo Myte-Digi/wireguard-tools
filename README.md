@@ -3,6 +3,11 @@
 brew install wireguard-tools gpg qrencode grepcidr
 git clone git@bitbucket.org:mytesend/wireguard-tools.git
 ```
+
+# Ubuntu installed
+```
+apt-get install wireguard-tools gpg qrencode grepcidr
+```
 ## Copy config
 ```
 cp wg0.conf wg0.conf 
