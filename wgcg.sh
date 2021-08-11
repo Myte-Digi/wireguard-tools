@@ -631,9 +631,11 @@ wg_sync() {
     exit 1
   fi
 
-  cat ${server_config} | ssh -p ${server_ssh_port} root@${server_ssh_ip} "cat > /etc/wireguard/${server_name}.conf && chmod 600 /etc/wireguard/${server_name}.conf"
+  #cat ${server_config} | ssh -p ${server_ssh_port} root@${server_ssh_ip} "cat > /etc/wireguard/${server_name}.conf && chmod 600 /etc/wireguard/${server_name}.conf"
+  scp  ${server_config} root@${server_ssh_ip}:/etc/wireguard/wg0.conf
   if [[ ${?} -eq 0 ]]; then
     ssh -p ${server_ssh_port} root@${server_ssh_ip} "
+      chmod 600 /etc/wireguard/${server_name}.conf &> /dev/null
       if ! systemctl is-enabled wg-quick@${server_name}.service &> /dev/null; then
         systemctl enable --now wg-quick@${server_name}.service &> /dev/null
       fi
