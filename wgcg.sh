@@ -30,6 +30,9 @@ SERVER_PUBLIC_IP=${WGCG_SERVER_PUBLIC_IP}
 SERVER_SSH_IP=${WGCG_SERVER_SSH_IP}
 # SSH server port (default: 22)
 SERVER_SSH_PORT=${WGCG_SERVER_SSH_PORT}
+
+SERVER_SSH_USER=${WGCG_SERVER_SSH_USER}
+
 # Space separated list of DNS IPs (default: 1.1.1.1 1.0.0.1)
 CLIENT_DNS_IPS=${WGCG_CLIENT_DNS_IPS}
 # Space separated list of subnets (with CIDR) required for split-tunneling (default: 0.0.0.0/0)
@@ -255,6 +258,7 @@ wg_sysprep() {
   local sysprep_module="${1}"
   local server_ssh_ip="${2}"
   local server_ssh_port="${3:-16}"
+  local server_ssh_user="${4}"
 
   local server_prepared="${WORKING_DIR}/.sysprepared"
 
@@ -277,7 +281,7 @@ wg_sysprep() {
   fi
 
   local sysprep_module_script="${sysprep_module##*/}"
-  cat ${sysprep_module} | ssh -p ${server_ssh_port} root@${server_ssh_ip} "
+  cat ${sysprep_module} | ssh -p ${server_ssh_port} ${server_ssh_user}@${server_ssh_ip} "
     cat > /usr/local/bin/${sysprep_module_script} && \
     chmod +x /usr/local/bin/${sysprep_module_script} && \
     /usr/local/bin/${sysprep_module_script}
@@ -397,7 +401,7 @@ Address = ${server_wg_ip}/${cidr}
 ListenPort = ${server_port}
 PrivateKey = $(head -1 ${server_private_key})
 PostUp = iptables -A FORWARD -i ${server_name} -j ACCEPT; iptables -A FORWARD -o ${server_name} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${PRIVATE_INTERFACE} -j MASQUERADE; 
-PostDown = iptables -D FORWARD -i ${server_name} -j ACCEPT; iptables -D FORWARD -o ${server_name} -j ACCEPT;iptables -t nat -D POSTROUTING -o ${PRIVATE_INTERFACE} -j MASQUERADE
+PostDown = iptables -D FORWARD -i ${server_name} -j ACCEPT; iptables -D FORWARD -o ${server_name} -j ACCEPT; iptables -t nat -D POSTROUTING -o ${PRIVATE_INTERFACE} -j MASQUERADE
 EOF
 
   touch ${server_generated}
@@ -612,7 +616,7 @@ wg_sync() {
   local server_name="${1}"
   local server_ssh_ip="${2}"
   local server_ssh_port="${3:-8}"
-
+  local server_ssh_user="${4}"
   local server_config="${WORKING_DIR}/server-${server_name}.conf"
 
   if [[ ! -f ${server_config} ]]; then
@@ -625,16 +629,16 @@ wg_sync() {
     exit 1
   fi
 
-  ssh -p ${server_ssh_port} root@${server_ssh_ip} "which wg-quick &> /dev/null"
+  ssh -p ${server_ssh_port} ${server_ssh_user}@${server_ssh_ip} "which wg-quick &> /dev/null"
   if [[ ${?} -ne 0 ]]; then
     echo -e "${YELLOW}WARNING${NONE}: It looks like ${GREEN}wireguard-tools${NONE} package isn't installed, please run script with ${GREEN}--sysprep${NONE} option first"
     exit 1
   fi
 
-  #cat ${server_config} | ssh -p ${server_ssh_port} root@${server_ssh_ip} "cat > /etc/wireguard/${server_name}.conf && chmod 600 /etc/wireguard/${server_name}.conf"
-  scp  ${server_config} root@${server_ssh_ip}:/etc/wireguard/wg0.conf
+  #cat ${server_config} | ssh -p ${server_ssh_port} ${server_ssh_user}@${server_ssh_ip} "cat > /etc/wireguard/${server_name}.conf && chmod 600 /etc/wireguard/${server_name}.conf"
+  scp  ${server_config} ${server_ssh_user}@${server_ssh_ip}:/etc/wireguard/wg0.conf
   if [[ ${?} -eq 0 ]]; then
-    ssh -p ${server_ssh_port} root@${server_ssh_ip} "
+    ssh -p ${server_ssh_port} ${server_ssh_user}@${server_ssh_ip} "
       chmod 600 /etc/wireguard/${server_name}.conf &> /dev/null
       if ! systemctl is-enabled wg-quick@${server_name}.service &> /dev/null; then
         systemctl enable --now wg-quick@${server_name}.service &> /dev/null
@@ -655,7 +659,7 @@ case ${1} in
   '-P'|'--sysprep')
     shift
     # sysprep_module, server_ssh_ip, server_ssh_port
-    wg_sysprep ${1:-''} ${SERVER_SSH_IP:-${SERVER_PUBLIC_IP}} ${SERVER_SSH_PORT}
+    wg_sysprep ${1:-''} ${SERVER_SSH_IP:-${SERVER_PUBLIC_IP}} ${SERVER_SSH_PORT} ${SERVER_SSH_USER}
   ;;
   '-s'|'--add-server-config')
     shift
@@ -701,7 +705,7 @@ case ${1} in
   '-S'|'--sync')
     shift
     # server_name, server_ssh_ip, server_ssh_port
-    wg_sync ${SERVER_NAME} ${SERVER_SSH_IP:-${SERVER_PUBLIC_IP}} ${SERVER_SSH_PORT}
+    wg_sync ${SERVER_NAME} ${SERVER_SSH_IP:-${SERVER_PUBLIC_IP}} ${SERVER_SSH_PORT} ${SERVER_SSH_USER}
   ;;
   *)
     help
